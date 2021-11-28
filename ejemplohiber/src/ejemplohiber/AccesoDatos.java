@@ -3,6 +3,7 @@ package ejemplohiber;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -95,7 +96,8 @@ public class AccesoDatos {
         
         Usuarios buscado = (Usuarios) consulta.uniqueResult();
         output = (buscado != null) ? buscado.getPass()+"\n"+buscado.getTipo()+"\n" : "No existe el usuario";
-                
+               
+        ses.close();
         return output;
     }
     
@@ -110,6 +112,7 @@ public class AccesoDatos {
         Departamentos buscado = (Departamentos) consulta.uniqueResult();        
         output = (buscado == null)? "No existe el departamento" : getEmpleados((Set<Empleados>) buscado);
         
+        ses.close();
         return output;
     }
     private String getEmpleados(Set<Empleados> empleados){
@@ -156,7 +159,7 @@ public class AccesoDatos {
     public String ejercicio1(){
         String res = "";
         String departamento = "Dallas";
-        String sentencia = "from Departamentos d where d.localizacion='"+departamento+"'";
+        String sentencia = "FROM Departamentos d WHERE d.localizacion='"+departamento+"'";
         Session ses = ses();
         Query consulta = ses.createQuery(sentencia);
         Departamentos buscado =(Departamentos)consulta.uniqueResult();
@@ -176,21 +179,23 @@ public class AccesoDatos {
     // Mostrar datos de los empleados que trabajan en el departamento localizado en Dallas
     public String ejercicio2(){
         String res = "";
-        int id_departamento;
-        String sentencia = "from Departamentos d where d.localizacion = 'Dallas'";
+        String sentencia = "FROM Departamentos d WHERE d.localizacion = 'Dallas'";
         Session ses = ses();
         Query consulta = ses.createQuery(sentencia);
         Departamentos buscado = (Departamentos) consulta.uniqueResult();
         if(buscado != null)
         {
-            id_departamento = buscado.getId();
-            sentencia = "from Empleados e where e.departamento = "+id_departamento;
+            int id_departamento = buscado.getId();
+            System.out.println(id_departamento);
+            sentencia = "FROM Empleados e WHERE e.departamentos="+id_departamento;
+            System.out.println(sentencia);
             Query consulta2 = ses.createQuery(sentencia);
-            List<Empleados> list = consulta2.list();
+            List<Empleados> list = (List<Empleados>)consulta2.list();
             for (Empleados u: list)
             {
                 String nombre_jefe = "";
-                sentencia = "from Empleados e where id = "+u.getEmpleados();
+                sentencia = "FROM Empleados e WHERE e.id ="+u.getId();
+
                 Query consulta3 = ses.createQuery(sentencia);
                 Empleados jefe =(Empleados) consulta3.uniqueResult();                
                 nombre_jefe = (jefe != null)? jefe.getApellido() : "Este empleado no tiene jefe";
@@ -214,12 +219,12 @@ public class AccesoDatos {
         String res = "";
         
         Session ses = ses();
-        String sentencia = "FROM empleados e ORDER BY e.salario DESC";
+        String sentencia = "FROM Empleados e ORDER BY e.salario DESC";
         Query consulta = ses.createQuery(sentencia);
-        Empleados buscado = (Empleados)consulta.uniqueResult();
+        Empleados buscado = (Empleados)consulta.list().get(0);
         if( buscado != null)
         {
-            res = "El empleado con mayor sueldo es "+buscado.getSalario();
+            res = "El empleado con mayor sueldo es "+buscado.getApellido()+" con un salario de "+buscado.getSalario();
         } else 
         {
             res = "No existen empleados";
@@ -233,13 +238,13 @@ public class AccesoDatos {
         
         Session ses = ses();
         int id_departamento;
-        String sentencia = "FROM empleados e ORDER BY e.salario";
+        String sentencia = "FROM Empleados e ORDER BY e.salario";
         Query consulta = ses.createQuery(sentencia);
-        Empleados buscado = (Empleados)consulta.uniqueResult();
+        Empleados buscado = (Empleados)consulta.list().get(0);
         if(buscado != null)
         {
             id_departamento =((Departamentos)buscado.getDepartamentos()).getId();
-            sentencia = "FROM departamentos d WHERE id = "+id_departamento;
+            sentencia = "FROM Departamentos d WHERE d.id = "+id_departamento;
             Query consulta2 = ses.createQuery(sentencia);
             Departamentos departamento = (Departamentos)consulta2.uniqueResult();
             if(departamento != null)
@@ -263,15 +268,15 @@ public class AccesoDatos {
     {
         int res = 0;
         Session ses = ses();
-        String sentencia = "FROM empleados e ORDER BY e.salario";
+        String sentencia = "FROM Empleados e ORDER BY e.salario";
         Query consulta = ses.createQuery(sentencia);
-        Empleados empleado = (Empleados)consulta.uniqueResult();
+        Empleados empleado = (Empleados)consulta.list().get(0);
         if(empleado != null)
         {
             Departamentos dpto = empleado.getDepartamentos();
             if (dpto != null)
             {
-                sentencia = "FROM empleados e WHERE e.departamento="+dpto.getId();
+                sentencia = "FROM Empleados e WHERE e.departamentos="+dpto.getId();
                 Query consulta2 = ses.createQuery(sentencia);
                 List<Empleados> list = consulta2.list();
                 for (Empleados e:list)
@@ -295,14 +300,14 @@ public class AccesoDatos {
     {
         String res = "";
         Session ses = ses();
-        List<Integer> dpto_salarios = Arrays.asList();
-        List<String> dpto_nombres = Arrays.asList();
-        String sentencia = "FROM departamentos d";
+        List<Integer> dpto_salarios = new ArrayList<>();
+        List<String> dpto_nombres = new ArrayList<>();
+        String sentencia = "FROM Departamentos d";
         Query consulta = ses.createQuery(sentencia);
         List<Departamentos> departamentos_list = consulta.list();
         for(Departamentos d: departamentos_list)
         {            
-            sentencia = "FROM empleados e WHERE e.departamento="+d.getId();
+            sentencia = "FROM Empleados e WHERE e.departamentos="+d.getId();
             Query consulta2 = ses.createQuery(sentencia);
             List<Empleados> empleados_list = consulta2.list();
             int salario_acc = 0;
@@ -322,8 +327,6 @@ public class AccesoDatos {
         {
             res = "No existen departamentos";
         }
-        
-        
         ses.close();
         return res;
     }
@@ -333,12 +336,12 @@ public class AccesoDatos {
         String res = "";
         Session ses = ses();
         
-        String sentencia = "FROM empleados e WHERE apellido = 'MILLER'";
+        String sentencia = "FROM Empleados e WHERE e.apellido = 'MILLER'";
         Query consulta = ses.createQuery(sentencia);
         Empleados miller = (Empleados)consulta.uniqueResult();
         if (miller != null)
         {
-            sentencia = "FROM empleados e WHERE id="+miller.getEmpleados();            
+            sentencia = "FROM Empleados e WHERE e.id="+miller.getEmpleados().getId();            
             Query consulta2 = ses.createQuery(sentencia);
             Empleados jefe_miller = (Empleados)consulta2.uniqueResult();
             if(jefe_miller != null)
@@ -358,47 +361,119 @@ public class AccesoDatos {
     }
     
     //  Qué empleados tienen como jefe a KING
-    public List<Empleados> ejercicio8() throws Exception
+    public String ejercicio8() throws Exception
     {
-        List<Empleados> res = Arrays.asList();
+        String res = "";
         Session ses = ses();
-        String sentencia = "FROM empleados e WHERE apellido ='KING'";
+        String sentencia = "FROM Empleados e WHERE apellido ='KING'";
         Query consulta = ses.createQuery(sentencia);
         Empleados king = (Empleados)consulta.uniqueResult();
-        if(king != null)
+        if(king == null)
         {
-            res = (List<Empleados>) king.getEmpleadoses();            
+            res = "KING no existe";            
         } else 
         {
-            throw new Exception("No existe KING");
+            if ((king.getEmpleadoses()).size() <= 0)
+            {
+                res = "KING no tiene subordinados";
+            } else 
+            {
+                res = "Subordinados de KING:\n";
+                for(Empleados e: (Set<Empleados>)king.getEmpleadoses())
+                {
+                    res += "\t"+e.getApellido()+"\n";
+                }
+            }                       
+        }        
+        ses.close();
+        return res;
+    }
+    public String ejercicio9()
+    {
+        String res = "";
+        Session ses = ses();
+        
+        String sentencia = "FROM Departamentos d";
+        Query consulta = ses.createQuery(sentencia);
+        List<Departamentos> dptos = (List<Departamentos>)consulta.list();
+        
+        if( dptos.size() <= 0)
+        {
+            res = "No existen Departamentos";
+        } else
+        {
+            for(Departamentos d: dptos)
+            {
+                sentencia = "FROM Empleados e WHERE e.departamentos="+d.getId();
+                Query consulta2 = ses.createQuery(sentencia);
+                List<Empleados> empleados_dpto = (List<Empleados>)consulta2.list();
+                if (empleados_dpto.size() <= 0)
+                {
+                    res += "El departamento "+d.getNombre()+" no tiene empleados\n";
+                } else
+                {
+                    res += "El departamento "+d.getNombre()+" tiene la siguiente lista de empleados:\n";
+                    for(Empleados e: empleados_dpto)
+                    {
+                        res += e.getId()+"\n"
+                                + "\tNombre: "+e.getApellido()+("\n"
+                                + "\tCargo: "+e.getCargo()+"\n"
+                                + "\tSalario: "+e.getSalario()+"\n"
+                                + "\tComision: "+e.getComision()+"\n"
+                                + "\tJefe: ");
+                        if (e.getEmpleados() != null){
+                            sentencia = "FROM Empleados e WHERE e.empleados ="+e.getEmpleados().getId()+" AND e.apellido='"+e.getApellido()+"'";
+                            Query consulta3 = ses.createQuery(sentencia);
+                            Empleados jefe = (Empleados)consulta3.uniqueResult();
+                            res += jefe.getApellido()+"\n";
+                        } else
+                        {
+                            res += "Este empleado no tiene jefe\n";
+                        }
+                        
+                        res += "\tSubordinados: ";
+                        if(e.getEmpleadoses().size() <= 0)
+                        {
+                            res += "Este empleado no tiene subordinados\n";
+                        } else
+                        {
+                            for(Empleados subordinado: (Set<Empleados>)e.getEmpleadoses())
+                            {
+                                res += "\t\t"+subordinado.getApellido()+"\n";
+                            }
+                        }
+                        res += "******************************\n";                        
+                    }
+                }                       
+            }
         }
-        //  Si queremos un string con los nombres de los subordinados no hay mas que iterar la lista de subordinados y obtener su apellido
+        ses.close();
         return res;
     }
     
     //  Que empleados son jefes de algún empleado y cuales no
-    public Map<String,List<Empleados>> ejercicio10()
+    public String ejercicio10()
     {
-        Map<String,List<Empleados>> res = new HashMap<String,List<Empleados>>();
+        String res = "";
+        String lista_jefes = "Jefes de alguien: \n";
+        String lista_no_jefes = "Jefes de nadie: \n";
         Session ses = ses();
         
-        String sentencia = "FROM empleados e";
+        String sentencia = "FROM Empleados e";
         Query consulta = ses.createQuery(sentencia);
         List<Empleados> lista = (List<Empleados>)consulta.list();
         for(Empleados e: lista)
         {
-            int e_jefes = ((List<Empleados>)e.getEmpleados()).size();
-            int e_subordinados = ((List<Empleados>)e.getEmpleadoses()).size();
+            int e_subordinados = ((Set<Empleados>)e.getEmpleadoses()).size();
             if(e_subordinados > 0)
             {
-                //  Si es jefe de algun empleado
+                lista_jefes += "\t"+e.getApellido()+"\n";
             } else
             {
-                // no es jefe de ningun empleado
+                lista_no_jefes += "\t"+e.getApellido()+"\n";
             }
         }
-        
-        
+        res = lista_jefes +"\n*************\n"+ lista_no_jefes;
         ses.close();
         return res;
     }
